@@ -17,19 +17,19 @@ public class DataClient {
 		f.setLayout(new BorderLayout());
 		f.setName("Client");
 		JPanel top=new JPanel();
-		JLabel labelPosição= new JLabel("Posição a consultar");
-		JTextField textFieldPosição=new JTextField();
-		textFieldPosição.setColumns(12);
+		JLabel labelPosition= new JLabel("Posiï¿½ï¿½o a consultar");
+		JTextField textFieldPosition=new JTextField();
+		textFieldPosition.setColumns(12);
 		JLabel labelComprimento= new JLabel("Comprimento");
 		JTextField textFieldComprimento=new JTextField();
 		JTextArea textArea=new JTextArea();
 		textFieldComprimento.setColumns(12);
 		textArea.setColumns(30);
-		textArea.setText("As respostas aparecerão aqui...");
+		textArea.setText("As respostas aparecerï¿½o aqui...");
 		JButton b = new JButton("Consultar");//creating instance of JButton
 		b.setBounds(130,100,100, 40);//x axis, y axis, width, height  
-		top.add(labelPosição);
-		top.add(textFieldPosição);
+		top.add(labelPosition);
+		top.add(textFieldPosition);
 		top.add(labelComprimento);
 		top.add(textFieldComprimento);
 		top.add(b);
@@ -43,7 +43,7 @@ public class DataClient {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				int posicao=0,comprimento = 0;
-				String text1 = textFieldPosição.getText();
+				String text1 = textFieldPosition.getText();
 				String text2= textFieldComprimento.getText();
 				if(text1.isBlank() || text2.isBlank()) {
 					textArea.setText("Inserir valores");
@@ -53,10 +53,10 @@ public class DataClient {
 					posicao=Integer.parseInt(text1);
 					comprimento= Integer.parseInt(text2);
 				}catch (NumberFormatException err){
-					textArea.setText("Inserir valor numérico");
+					textArea.setText("Inserir valor numï¿½rico");
 					return;
 				}	
-				String str= "Posição: " + posicao + " Comprimento: "+ comprimento;
+				String str= "Posiï¿½ï¿½o: " + posicao + " Comprimento: "+ comprimento;
 				textArea.setText(str);
 				
 			}

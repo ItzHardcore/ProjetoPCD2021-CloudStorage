@@ -88,14 +88,19 @@ public class StorageNode {
 		out.println("nodes");
 		while(true) {
 			String msg =in.readLine();
-			if(msg.equals("END"))
+			if(msg.equals("end"))
 				break;
-			InetAddress ip;
-			String porto;
+			InetAddress ipNode=null;
+			String portoNode=null;
 			String[] componentes = msg.split(" ");
-			ip= InetAddress.getByName(componentes[1].substring(1));
-			porto= componentes[2];
-			nodesList.add(new Node(ip, porto));
+			System.out.println("corri");
+			ipNode= InetAddress.getByName(componentes[1].substring(1));
+			portoNode= componentes[2];
+			System.out.println("Ip: "+ipNode+"  Porto: "+portoNode);
+			if (!this.porto.contentEquals(portoNode)) {
+				System.out.println("corri");
+				nodesList.add(new Node(ipNode, portoNode));
+			}			
 		}
 	}
 

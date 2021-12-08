@@ -1,0 +1,29 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Launch with Arguments Prompt",
+            "request": "launch",
+            "mainClass": "StorageNode",
+            "args": ["127.0.0.1","8080","8081","data.bin"]
+        },
+        {
+            "type": "java",
+            "name": "Launch DataClient",
+            "request": "launch",
+            "mainClass": "DataClient",
+            "projectName": "ProjetoPCD"
+        },
+        {
+            "type": "java",
+            "name": "Launch StorageNode",
+            "request": "launch",
+            "mainClass": "StorageNode",
+            "projectName": "ProjetoPCD"
+        }
+    ]
+}
