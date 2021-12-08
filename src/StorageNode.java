@@ -41,7 +41,7 @@ public class StorageNode {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-
+		new DownloadThread().start();
 		new DataInjectionErrorThread().start();
 	}
 	public StorageNode(String ip, String portoDiretorio, String porto) throws UnknownHostException {
@@ -62,9 +62,7 @@ public class StorageNode {
 			// create a synchronized list
 			List<ByteBlockRequest> synlist = Collections.synchronizedList(list);
 
-			byte[] fileContents = Files.readAllBytes(new File(ficheiro).toPath());
-			for(int i=0;i<fileContents.length;i++)  storedData[i]= new CloudByte(fileContents[i]);
-			System.out.println("Loaded data from file:1000000");
+
 		} catch (IOException e) {e.printStackTrace();}
 
 		new DataInjectionErrorThread().start();
@@ -78,6 +76,13 @@ public class StorageNode {
 			super();
 			this.ip = ip;
 			this.porto = porto;
+		}
+	}
+	public void MergetoFile(ByteBlockRequest request, CloudByte[] array){
+		int y=0;
+		for(int i=request.getStartIndex();i<100;i++) {
+			storedData[i] = array[y];
+			y++;
 		}
 	}
 
@@ -171,5 +176,7 @@ public class StorageNode {
 			}
 		}
 	}
+
+
 }
 
