@@ -25,7 +25,7 @@ public class StorageNode {
 	private String portoDiretorio;
 	private String ficheiro;
 	private InetAddress ip;
-	private ArrayList<Node> nodesList;
+
 
 
 	public StorageNode(String ip,String portoDiretorio,String porto,String ficheiro) throws UnknownHostException {
@@ -50,9 +50,7 @@ public class StorageNode {
 		this.ip = InetAddress.getByName(ip);
 
 		try {
-			//getnodes
-			//cria o array de pedidos
-
+			List<Node> nodes= getNodes();
 			// creating object of List<String>
 			List<ByteBlockRequest> list = new ArrayList<ByteBlockRequest>();
 
@@ -83,7 +81,9 @@ public class StorageNode {
 		}
 	}
 
-	public void getNodes() throws IOException {
+	public List<Node> getNodes() throws IOException {
+		ArrayList<Node> nodesList = null;
+		
 		System.out.println("getnodes");
 		out.println("nodes");
 		while(true) {
@@ -102,6 +102,7 @@ public class StorageNode {
 				nodesList.add(new Node(ipNode, portoNode));
 			}			
 		}
+		return nodesList;
 	}
 
 	void connectToServer() throws IOException {
@@ -142,6 +143,21 @@ public class StorageNode {
 	}
 
 	public class DataInjectionErrorThread extends Thread{
+		public void run() {
+			Scanner s= new Scanner(System.in);
+			while(true) {
+				String error = s.nextLine();
+				String[] str=error.split(" ");
+				if(str[0].equals("ERROR") && str.length==2) {
+					int index= Integer.parseInt(str[1]);
+					storedData[index].makeByteCorrupt();
+					System.out.println("Error injected: "+storedData[index]+" Parity NOK");
+				}
+			}
+		}
+	}
+
+	public class DownloadThread extends Thread{
 		public void run() {
 			Scanner s= new Scanner(System.in);
 			while(true) {
