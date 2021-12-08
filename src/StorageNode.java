@@ -44,35 +44,25 @@ public class StorageNode {
 
 		new DataInjectionErrorThread().start();
 	}
-	public StorageNode(String porto, String portoDiretorio, InetAddress ip) {
+	public StorageNode(String ip, String portoDiretorio, String porto) throws UnknownHostException {
 		this.porto = porto;
 		this.portoDiretorio = portoDiretorio;
-		this.ip = ip;
+		this.ip = InetAddress.getByName(ip);
 
 		try {
 			//getnodes
 			//cria o array de pedidos
 
 			// creating object of List<String>
-			List<String> list = new ArrayList<String>();
+			List<ByteBlockRequest> list = new ArrayList<ByteBlockRequest>();
 
 			// populate the list
-			list.add("A");
-			list.add("B");
-			list.add("C");
-			list.add("D");
-			list.add("E");
-
-			// printing the Collection
-			System.out.println("List : " + list);
+			for(int i=0;i<10000;i++){
+				list.add(new ByteBlockRequest(i*100,100));
+			}
 
 			// create a synchronized list
-			List<String> synlist = Collections
-					.synchronizedList(list);
-
-			// printing the Collection
-			System.out.println("Synchronized list is : " + synlist);
-
+			List<ByteBlockRequest> synlist = Collections.synchronizedList(list);
 
 			byte[] fileContents = Files.readAllBytes(new File(ficheiro).toPath());
 			for(int i=0;i<fileContents.length;i++)  storedData[i]= new CloudByte(fileContents[i]);
@@ -91,23 +81,6 @@ public class StorageNode {
 			this.ip = ip;
 			this.porto = porto;
 		}
-	}
-
-	public StorageNode(String ip,String portoDiretorio,String porto) throws UnknownHostException {
-		this.ip=InetAddress.getByName(ip);
-		this.porto = porto;
-		this.portoDiretorio = "8080";
-		//apanhar byte
-		System.out.println("Sending to diretory:"+" INSC "+ip+" "+porto);
-		try {
-			byte[] conteudoFicheiro = Files.readAllBytes(new File(ficheiro).toPath());
-			for(int i=0;i<conteudoFicheiro.length;i++)  storedData[i]= new CloudByte(conteudoFicheiro[i]);
-			System.out.println("Loaded data from file:1000000");
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-
-		new DataInjectionErrorThread().start();
 	}
 
 	public void getNodes() throws IOException {
