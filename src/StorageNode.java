@@ -168,7 +168,6 @@ public class StorageNode implements Serializable{
 				connectToNode();
 				// System.out.println(in.readLine());
 				while(!requests.isEmpty()){
-					connectToNode();
 					request=requests.remove(0);
 					System.out.println("retirei request");
 					out.writeObject(request);
