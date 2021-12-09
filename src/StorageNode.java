@@ -174,22 +174,22 @@ public class StorageNode {
 		private ObjectOutputStream out;
 		private InetAddress ip;
 		private String porto;
+		private ByteBlockRequest request;
 
 		public void run() {
 			try {
-				System.out.println("comecei contacto");
 				connectToNode();
-				System.out.println(in.readObject().toString());
+				out.writeObject(request);
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-
 		}
 
-		public DownloadThread(InetAddress ip, String porto) {
+		public DownloadThread(InetAddress ip, String porto,ByteBlockRequest request) {
 			this.ip = ip;
 			this.porto = porto;
+			this.request=request;
 		}
 
 		void connectToNode() throws IOException {
