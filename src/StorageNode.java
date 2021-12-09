@@ -5,6 +5,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -18,7 +19,7 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 
-public class StorageNode {
+public class StorageNode implements Serializable{
 
 	public static final int COMPRIMENTO_DADOS = 1000000;
 	private CloudByte[] storedData = new CloudByte[COMPRIMENTO_DADOS];
@@ -30,6 +31,7 @@ public class StorageNode {
 	private String ficheiro;
 	private InetAddress ip;
 	private Servico servico;
+	private List<ByteBlockRequest> requests = Collections.synchronizedList(new ArrayList<>());
 
 	public StorageNode(String ip, String portoDiretorio, String porto, String ficheiro)
 			throws UnknownHostException, IOException {
@@ -38,6 +40,8 @@ public class StorageNode {
 		this.portoDiretorio = "8080";
 		this.ficheiro = ficheiro;
 		System.out.println("Sending to diretory:" + " INSC " + ip + " " + porto);
+		connectToServer();
+		registerInServer();
 		try {
 			byte[] conteudoFicheiro = Files.readAllBytes(new File(ficheiro).toPath());
 			for (int i = 0; i < conteudoFicheiro.length; i++)
@@ -54,22 +58,20 @@ public class StorageNode {
 		this.porto = porto;
 		this.portoDiretorio = portoDiretorio;
 		this.ip = InetAddress.getByName(ip);
+		connectToServer();
+		registerInServer();
 		try {
 			List<Node> nodes = getNodes();
-			// creating object of List<String>
-			List<ByteBlockRequest> list = new ArrayList<ByteBlockRequest>();
-
-			// populate the list
 			for (int i = 0; i < 10000; i++) {
-				list.add(new ByteBlockRequest(i * 100, 100));
+				requests.add(new ByteBlockRequest(i * 100, 100));
 			}
-
-			// create a synchronized list
-			List<ByteBlockRequest> synlist = Collections.synchronizedList(list);
-
+			for (Node node : nodes) {
+				new DownloadThread(node.ip, node.porto).start();
+			}
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		new Servico(new ServerSocket(Integer.parseInt(porto))).start();
 		new DataInjectionErrorThread().start();
 
 	}
@@ -85,7 +87,7 @@ public class StorageNode {
 		}
 	}
 
-	public void MergetoFile(ByteBlockRequest request, CloudByte[] array) {
+	public synchronized void MergetoFile(ByteBlockRequest request, CloudByte[] array) {
 		int y = 0;
 		for (int i = request.getStartIndex(); i < 100; i++) {
 			storedData[i] = array[y];
@@ -95,7 +97,6 @@ public class StorageNode {
 
 	public List<Node> getNodes() throws IOException {
 		ArrayList<Node> nodesList = new ArrayList<>();
-		System.out.println("getnodes");
 		out.println("nodes");
 		while (true) {
 			String msg = in.readLine();
@@ -128,31 +129,14 @@ public class StorageNode {
 		out.println("INSC " + ip + " " + porto);
 	}
 
-	public void runClient() {
-		try {
-			connectToServer();
-			registerInServer();
-			getNodes();
-			new DownloadThread(InetAddress.getByName("127.0.0.1"), "8081").start();
-		} catch (IOException e) {
-			e.printStackTrace();
-		} finally {
-			try {
-				socket.close();
-			} catch (IOException e) {
-
-			}
-		}
-	}
-
-	public static void main(String[] args) throws UnknownHostException, IOException {
-		if (args.length == 4)
-			new StorageNode(args[0], args[1], args[2], args[3]).runClient();
-		else if (args.length == 3)
-			new StorageNode(args[0], args[1], args[2]).runClient();
-		else
-			System.err.println("Invalid arguments");
-	}
+	// public void runClient() {
+	// 	try {
+	// 		connectToServer();
+	// 		registerInServer();
+	// 	} catch (IOException e) {
+	// 		e.printStackTrace();
+	// 	}
+	// }
 
 	public class DataInjectionErrorThread extends Thread {
 		public void run() {
@@ -172,37 +156,60 @@ public class StorageNode {
 	public class DownloadThread extends Thread {
 		private ObjectInputStream in;
 		private ObjectOutputStream out;
+		// private BufferedReader in;
+		// private PrintWriter out;
 		private InetAddress ip;
 		private String porto;
 		private ByteBlockRequest request;
+		private Socket socketNode;
 
 		public void run() {
 			try {
 				connectToNode();
-				out.writeObject(request);
+				// System.out.println(in.readLine());
+				while(!requests.isEmpty()){
+					connectToNode();
+					request=requests.remove(0);
+					System.out.println("retirei request");
+					out.writeObject(request);
+					MergetoFile(request, (CloudByte[]) in.readObject());
+				}
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
 
-		public DownloadThread(InetAddress ip, String porto,ByteBlockRequest request) {
+		public DownloadThread(InetAddress ip, String porto, ByteBlockRequest request) {
 			this.ip = ip;
 			this.porto = porto;
-			this.request=request;
+			this.request = request;
+		}
+
+		public DownloadThread(InetAddress ip, String porto) {
+			this.ip = ip;
+			this.porto = porto;
 		}
 
 		void connectToNode() throws IOException {
-			socket = new Socket(ip, Integer.parseInt(porto));
-			in = new ObjectInputStream(socket.getInputStream());
-			out = new ObjectOutputStream(socket.getOutputStream());
+			socketNode = new Socket(this.ip, Integer.parseInt(this.porto));
+			// this.in = new BufferedReader(new InputStreamReader(
+			// 	socketNode.getInputStream()));
+			// this.out = new PrintWriter(new BufferedWriter(
+			// 	new OutputStreamWriter(socketNode.getOutputStream())),
+			// 	true);
+			this.in = new ObjectInputStream(socketNode.getInputStream());
+			this.out = new ObjectOutputStream(socketNode.getOutputStream());
 		}
 	}
 
 	public class ResponderNodes extends Thread {
 		private Socket clientSocket;
+		// private BufferedReader in;
+		// private PrintWriter out;
 		private ObjectInputStream in;
 		private ObjectOutputStream out;
+		ByteBlockRequest request;
 
 		public ResponderNodes(Socket socket) {
 			this.clientSocket = socket;
@@ -210,14 +217,29 @@ public class StorageNode {
 
 		public void run() {
 			try {
-				out = new ObjectOutputStream(clientSocket.getOutputStream());
-				in = new ObjectInputStream(clientSocket.getInputStream());
-				out.writeObject("ola");
-				System.out.println("conectado");
-			} catch (IOException e) {
+				connectToNode();
+				// out.println("ola");
+				// System.out.println("mandei");
+				request = (ByteBlockRequest) in.readObject();
+				CloudByte[] lista = new CloudByte[request.getLength()];
+				for (int i = request.getStartIndex(); i < request.getLength(); i++) {
+					lista[i - request.getStartIndex()] = storedData[i];
+				}
+				out.writeObject(lista);
+			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+		}
+
+		void connectToNode() throws IOException {
+			// this.in = new BufferedReader(new InputStreamReader(
+			// 	clientSocket.getInputStream()));
+			// this.out = new PrintWriter(new BufferedWriter(
+			// 	new OutputStreamWriter(clientSocket.getOutputStream())),
+			// 	true);
+			out = new ObjectOutputStream(clientSocket.getOutputStream());
+			in = new ObjectInputStream(clientSocket.getInputStream());			
 		}
 	}
 
@@ -239,7 +261,7 @@ public class StorageNode {
 				try {
 					while (true) {
 						Socket s = this.serverSocket.accept();
-						(new ResponderNodes(s)).start();
+						new ResponderNodes(s).start();
 					}
 				} catch (IOException e) {
 					System.err.println("Erro ao aceitar ligade cliente no diret");
@@ -248,4 +270,12 @@ public class StorageNode {
 		}
 	}
 
+	public static void main(String[] args) throws UnknownHostException, IOException {
+		if (args.length == 4)
+			new StorageNode(args[0], args[1], args[2], args[3]);
+		else if (args.length == 3)
+			new StorageNode(args[0], args[1], args[2]);
+		else
+			System.err.println("Invalid arguments");
+	}
 }

@@ -16,7 +16,7 @@
             "name": "Port 8082",
             "request": "launch",
             "mainClass": "StorageNode",
-            "args": ["127.0.0.1","8080","8082","data.bin"]
+            "args": ["127.0.0.1","8080","8082"]
         },
         {
             "type": "java",
