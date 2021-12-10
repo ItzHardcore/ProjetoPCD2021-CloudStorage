@@ -46,7 +46,7 @@ public class StorageNode implements Serializable {
 			byte[] conteudoFicheiro = Files.readAllBytes(new File(ficheiro).toPath());
 			for (int i = 0; i < conteudoFicheiro.length; i++)
 				storedData[i] = new CloudByte(conteudoFicheiro[i]);
-			System.out.println("Loaded data from file:1000000");
+			System.out.println("O ficheiro local foi carregado com sucesso");
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -105,10 +105,8 @@ public class StorageNode implements Serializable {
 			InetAddress ipNode = null;
 			String portoNode = null;
 			String[] componentes = msg.split(" ");
-			System.out.println("corri");
-			ipNode = InetAddress.getByName(componentes[1].substring(1));
+			ipNode = InetAddress.getByName(componentes[1].substring(componentes[1].indexOf("/")+1));
 			portoNode = componentes[2];
-			System.out.println("Ip: " + ipNode + "  Porto: " + portoNode);
 			if (!this.porto.contentEquals(portoNode)) {
 				nodesList.add(new Node(ipNode, portoNode));
 			}
@@ -146,14 +144,17 @@ public class StorageNode implements Serializable {
 				String[] str = error.split(" ");
 				if (str[0].equals("ERROR") && str.length == 2) {
 					int index = Integer.parseInt(str[1]);
+					// NO INUNCIADO PEDE VALOR?!?? MAS O VALOR RETORNA IGUAL
+					System.out.println("Injetando erro no byte : "+ storedData[index].value + " na posição: " + index);
 					storedData[index].makeByteCorrupt();
-					System.out.println("Error injected: " + storedData[index] + " Parity NOK");
+					System.out.println("Novo valor do byte corrompido: " + storedData[index].value + " na posição: " + index);
+					//System.out.println("Error injected: " + storedData[index] + " Parity NOK");
 				}
 			}
 		}
 	}
 
-	public class DownloadThread extends Thread {
+	public class DownloadThread extends Thread {  //cliente
 		private ObjectInputStream in;
 		private ObjectOutputStream out;
 		// private BufferedReader in;
@@ -163,6 +164,17 @@ public class StorageNode implements Serializable {
 		private ByteBlockRequest request;
 		private Socket socketNode;
 		private int count;
+
+		//public DownloadThread(InetAddress ip, String porto, ByteBlockRequest request) {
+		//	this.ip = ip;
+		//	this.porto = porto;
+		//	this.request = request;
+		//}
+
+		public DownloadThread(InetAddress ip, String porto) {
+			this.ip = ip;
+			this.porto = porto;
+		}
 
 		public void run() {
 			try {
@@ -183,25 +195,15 @@ public class StorageNode implements Serializable {
 			}
 		}
 
-		public DownloadThread(InetAddress ip, String porto, ByteBlockRequest request) {
-			this.ip = ip;
-			this.porto = porto;
-			this.request = request;
-		}
-
-		public DownloadThread(InetAddress ip, String porto) {
-			this.ip = ip;
-			this.porto = porto;
-		}
-
 		void connectToNode() throws IOException {
 			socketNode = new Socket(this.ip, Integer.parseInt(this.porto));
 			this.in = new ObjectInputStream(socketNode.getInputStream());
 			this.out = new ObjectOutputStream(socketNode.getOutputStream());
+			System.err.println("Conectado ao node com o IP: "+socketNode.getInetAddress()+" no porto: "+socketNode.getPort());
 		}
 	}
 
-	public class ResponderNodes extends Thread {
+	public class ResponderNodes extends Thread {  //SERVO
 		private Socket clientSocket;
 		// private BufferedReader in;
 		// private PrintWriter out;
@@ -253,7 +255,7 @@ public class StorageNode implements Serializable {
 		}
 	}
 
-	public class Servico extends Thread {
+	public class Servico extends Thread { //cria o numero de threash consoante o numero de nodes, para responder aos pedidos
 		private ServerSocket serverSocket;
 
 		public Servico(ServerSocket serverSocket) {
@@ -266,7 +268,7 @@ public class StorageNode implements Serializable {
 		}
 
 		public void serve() {
-			System.err.println("Servia iniciar...");
+			System.err.println("Servico a iniciar...");
 			while (true) {
 				try {
 					while (true) {
