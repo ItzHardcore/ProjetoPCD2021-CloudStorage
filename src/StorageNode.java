@@ -19,7 +19,7 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 
-public class StorageNode implements Serializable{
+public class StorageNode implements Serializable {
 
 	public static final int COMPRIMENTO_DADOS = 1000000;
 	private CloudByte[] storedData = new CloudByte[COMPRIMENTO_DADOS];
@@ -89,7 +89,7 @@ public class StorageNode implements Serializable{
 
 	public synchronized void MergetoFile(ByteBlockRequest request, CloudByte[] array) {
 		int y = 0;
-		for (int i = request.getStartIndex(); i < 100; i++) {
+		for (int i = request.getStartIndex(); i < request.getStartIndex()+request.getLength(); i++) {
 			storedData[i] = array[y];
 			y++;
 		}
@@ -130,12 +130,12 @@ public class StorageNode implements Serializable{
 	}
 
 	// public void runClient() {
-	// 	try {
-	// 		connectToServer();
-	// 		registerInServer();
-	// 	} catch (IOException e) {
-	// 		e.printStackTrace();
-	// 	}
+	// try {
+	// connectToServer();
+	// registerInServer();
+	// } catch (IOException e) {
+	// e.printStackTrace();
+	// }
 	// }
 
 	public class DataInjectionErrorThread extends Thread {
@@ -166,13 +166,16 @@ public class StorageNode implements Serializable{
 		public void run() {
 			try {
 				connectToNode();
-				// System.out.println(in.readLine());
-				while(!requests.isEmpty()){
-					request=requests.remove(0);
+				while (!requests.isEmpty()) {
+					request = requests.remove(0);
 					System.out.println("retirei request");
 					out.writeObject(request);
-					MergetoFile(request, (CloudByte[]) in.readObject());
+					CloudByte[] bytes= (CloudByte[]) in.readObject();
+					MergetoFile(request, bytes);
 				}
+				System.out.println("vou enviar -1");
+				request.setLength(-1);
+				out.writeObject(request);
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -192,11 +195,6 @@ public class StorageNode implements Serializable{
 
 		void connectToNode() throws IOException {
 			socketNode = new Socket(this.ip, Integer.parseInt(this.porto));
-			// this.in = new BufferedReader(new InputStreamReader(
-			// 	socketNode.getInputStream()));
-			// this.out = new PrintWriter(new BufferedWriter(
-			// 	new OutputStreamWriter(socketNode.getOutputStream())),
-			// 	true);
 			this.in = new ObjectInputStream(socketNode.getInputStream());
 			this.out = new ObjectOutputStream(socketNode.getOutputStream());
 		}
@@ -219,12 +217,25 @@ public class StorageNode implements Serializable{
 				connectToNode();
 				// out.println("ola");
 				// System.out.println("mandei");
-				request = (ByteBlockRequest) in.readObject();
-				CloudByte[] lista = new CloudByte[request.getLength()];
-				for (int i = request.getStartIndex(); i < request.getLength(); i++) {
-					lista[i - request.getStartIndex()] = storedData[i];
+				while(true){
+					request = (ByteBlockRequest) in.readObject();
+					if(request.getLength()==-1)
+						break;
+					CloudByte[] lista = new CloudByte[request.getLength()];
+					for (int i = request.getStartIndex(); i < request.getLength()+request.getStartIndex(); i++) {
+						lista[i - request.getStartIndex()] = storedData[i];
+					}
+					out.writeObject(lista);
 				}
-				out.writeObject(lista);
+				// do {
+				// 	request = (ByteBlockRequest) in.readObject();
+				// 	CloudByte[] lista = new CloudByte[request.getLength()];
+				// 	for (int i = request.getStartIndex(); i < request.getLength()+request.getStartIndex(); i++) {
+				// 		lista[i - request.getStartIndex()] = storedData[i];
+				// 	}
+				// 	out.writeObject(lista);
+				// } while (request.getLength() != -1);
+				System.out.println("terminei");
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -233,12 +244,12 @@ public class StorageNode implements Serializable{
 
 		void connectToNode() throws IOException {
 			// this.in = new BufferedReader(new InputStreamReader(
-			// 	clientSocket.getInputStream()));
+			// clientSocket.getInputStream()));
 			// this.out = new PrintWriter(new BufferedWriter(
-			// 	new OutputStreamWriter(clientSocket.getOutputStream())),
-			// 	true);
+			// new OutputStreamWriter(clientSocket.getOutputStream())),
+			// true);
 			out = new ObjectOutputStream(clientSocket.getOutputStream());
-			in = new ObjectInputStream(clientSocket.getInputStream());			
+			in = new ObjectInputStream(clientSocket.getInputStream());
 		}
 	}
 
