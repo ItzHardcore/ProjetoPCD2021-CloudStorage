@@ -162,20 +162,21 @@ public class StorageNode implements Serializable {
 		private String porto;
 		private ByteBlockRequest request;
 		private Socket socketNode;
+		private int count;
 
 		public void run() {
 			try {
 				connectToNode();
 				while (!requests.isEmpty()) {
 					request = requests.remove(0);
-					System.out.println("retirei request");
+					//System.out.println("retirei request");
 					out.writeObject(request);
 					CloudByte[] bytes= (CloudByte[]) in.readObject();
+					count++;
 					MergetoFile(request, bytes);
 				}
-				System.out.println("vou enviar -1");
-				request.setLength(-1);
-				out.writeObject(request);
+				System.out.println("Retirei "+count+" blocos do node IP: "+ socketNode.getInetAddress()+" Porto: "+socketNode.getPort());
+				socketNode.close();
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -219,8 +220,8 @@ public class StorageNode implements Serializable {
 				// System.out.println("mandei");
 				while(true){
 					request = (ByteBlockRequest) in.readObject();
-					if(request.getLength()==-1)
-						break;
+					// if(request.getLength()==-1)
+					// 	break;
 					CloudByte[] lista = new CloudByte[request.getLength()];
 					for (int i = request.getStartIndex(); i < request.getLength()+request.getStartIndex(); i++) {
 						lista[i - request.getStartIndex()] = storedData[i];
@@ -235,10 +236,9 @@ public class StorageNode implements Serializable {
 				// 	}
 				// 	out.writeObject(lista);
 				// } while (request.getLength() != -1);
-				System.out.println("terminei");
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				System.out.println("Terminei de descarregar para o node IP:"+clientSocket.getInetAddress()+" Porto: "+clientSocket.getPort());
 			}
 		}
 
