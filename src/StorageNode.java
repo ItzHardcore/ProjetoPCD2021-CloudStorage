@@ -53,6 +53,7 @@ public class StorageNode implements Serializable {
 		}
 		new Servico(new ServerSocket(Integer.parseInt(porto))).start();
 		new DataInjectionErrorThread().start();
+		new DetetorDeErros().start();
 	}
 
 	public StorageNode(String ip, String portoDiretorio, String porto) throws UnknownHostException, IOException {
@@ -74,6 +75,7 @@ public class StorageNode implements Serializable {
 		}
 		new Servico(new ServerSocket(Integer.parseInt(porto))).start();
 		new DataInjectionErrorThread().start();
+		new DetetorDeErros().start();
 
 	}
 
@@ -90,7 +92,7 @@ public class StorageNode implements Serializable {
 
 	public synchronized void MergetoFile(ByteBlockRequest request, CloudByte[] array) {
 		int y = 0;
-		for (int i = request.getStartIndex(); i < request.getStartIndex()+request.getLength(); i++) {
+		for (int i = request.getStartIndex(); i < request.getStartIndex() + request.getLength(); i++) {
 			storedData[i] = array[y];
 			y++;
 		}
@@ -101,12 +103,12 @@ public class StorageNode implements Serializable {
 		out.println("nodes");
 		while (true) {
 			String msg = in.readLine();
-			if (msg.equals("end"))
+			if (msg.equalsIgnoreCase("end"))
 				break;
 			InetAddress ipNode = null;
 			String portoNode = null;
 			String[] componentes = msg.split(" ");
-			ipNode = InetAddress.getByName(componentes[1].substring(componentes[1].indexOf("/")+1));
+			ipNode = InetAddress.getByName(componentes[1].substring(componentes[1].indexOf("/") + 1));
 			portoNode = componentes[2];
 			if (!this.porto.contentEquals(portoNode)) {
 				nodesList.add(new Node(ipNode, portoNode));
@@ -128,8 +130,6 @@ public class StorageNode implements Serializable {
 		out.println("INSC " + ip + " " + porto);
 	}
 
-
-
 	public class DataInjectionErrorThread extends Thread {
 		public void run() {
 			Scanner s = new Scanner(System.in);
@@ -138,11 +138,10 @@ public class StorageNode implements Serializable {
 				String[] str = error.split(" ");
 				if (str[0].equals("ERROR") && str.length == 2) {
 					int index = Integer.parseInt(str[1]);
-					// NO INUNCIADO PEDE VALOR?!?? MAS O VALOR RETORNA IGUAL
-					System.out.println("Injetando erro no byte : "+ storedData[index].value + " na posição: " + index);
+					System.out.println("Injetando erro no byte : " + storedData[index].value + " na posição: " + index);
 					storedData[index].makeByteCorrupt();
-					System.out.println("Novo valor do byte corrompido: " + storedData[index].value + " na posição: " + index);
-					//System.out.println("Error injected: " + storedData[index] + " Parity NOK");
+					System.out.println(
+							"Novo valor do byte corrompido: " + storedData[index].value + " na posição: " + index);
 				}
 			}
 		}
@@ -150,25 +149,33 @@ public class StorageNode implements Serializable {
 
 	public class DetetorDeErros extends Thread {
 		public void run() {
-			while(true){
+			while (true) {
 				for (int i = 0; i < storedData.length; i++) {
-					if(!storedData[i].isParityOk())
-						//corrrigir erro
-						corrigirErro(i);
+					if (!storedData[i].isParityOk()){
+						try {
+							System.out.println("Detetei erro em "+storedData[i]);
+							corrigirErro(i);
+						} catch (InterruptedException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+					}
 				}
 			}
 		}
 	}
 
 	public synchronized void corrigirErro(int posicao) throws InterruptedException {
-		CountDownLatch latch=new CountDownLatch(2);
 		try {
 			List<Node> nodes = getNodes();
+			if(nodes.size()<)
+			CountDownLatch latch = new CountDownLatch(2);
 			ByteBlockRequest request = new ByteBlockRequest(posicao, 1);
 			for (Node node : nodes) {
-				new DownloadThread(node.ip, node.porto,request);
+				new DownloadThread(node.ip, node.porto, request);
 			}
 			latch.await();
+			System.out.println("Duas threads terminaram");
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -201,11 +208,12 @@ public class StorageNode implements Serializable {
 				while (!requests.isEmpty()) {
 					request = requests.remove(0);
 					out.writeObject(request);
-					CloudByte[] bytes= (CloudByte[]) in.readObject();
+					CloudByte[] bytes = (CloudByte[]) in.readObject();
 					count++;
 					MergetoFile(request, bytes);
 				}
-				System.out.println("Retirei "+count+" blocos do node IP: "+ socketNode.getInetAddress()+" Porto: "+socketNode.getPort());
+				System.out.println("Retirei " + count + " blocos do node IP: " + socketNode.getInetAddress()
+						+ " Porto: " + socketNode.getPort());
 				socketNode.close();
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
@@ -217,11 +225,12 @@ public class StorageNode implements Serializable {
 			socketNode = new Socket(this.ip, Integer.parseInt(this.porto));
 			this.in = new ObjectInputStream(socketNode.getInputStream());
 			this.out = new ObjectOutputStream(socketNode.getOutputStream());
-			System.err.println("Conectado ao node com o IP: "+socketNode.getInetAddress()+" no porto: "+socketNode.getPort());
+			System.err.println("Conectado ao node com o IP: " + socketNode.getInetAddress() + " no porto: "
+					+ socketNode.getPort());
 		}
 	}
 
-	public class ResponderNodes extends Thread {  //SERVO
+	public class ResponderNodes extends Thread { // SERVO
 		private Socket clientSocket;
 		private ObjectInputStream in;
 		private ObjectOutputStream out;
@@ -235,13 +244,13 @@ public class StorageNode implements Serializable {
 			try {
 				connectToNode();
 
-				while(true){
+				while (true) {
 					request = (ByteBlockRequest) in.readObject();
 					// if(request.getLength()==-1)
-					// 	break;
+					// break;
 					CloudByte[] lista = new CloudByte[request.getLength()];
-					for (int i = request.getStartIndex(); i < request.getLength()+request.getStartIndex(); i++) {
-						if(!storedData[i].isParityOk())
+					for (int i = request.getStartIndex(); i < request.getLength() + request.getStartIndex(); i++) {
+						if (!storedData[i].isParityOk())
 							corrigirErro(i);
 						lista[i - request.getStartIndex()] = storedData[i];
 					}
@@ -249,7 +258,8 @@ public class StorageNode implements Serializable {
 				}
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
-				System.out.println("Terminei de descarregar para o node IP:"+clientSocket.getInetAddress()+" Porto: "+clientSocket.getPort());
+				System.out.println("Terminei de descarregar para o node IP:" + clientSocket.getInetAddress()
+						+ " Porto: " + clientSocket.getPort());
 			}
 		}
 
@@ -259,7 +269,8 @@ public class StorageNode implements Serializable {
 		}
 	}
 
-	public class Servico extends Thread { //cria o numero de threash consoante o numero de nodes, para responder aos pedidos
+	public class Servico extends Thread { // cria o numero de threash consoante o numero de nodes, para responder aos
+											// pedidos
 		private ServerSocket serverSocket;
 
 		public Servico(ServerSocket serverSocket) {
@@ -294,6 +305,5 @@ public class StorageNode implements Serializable {
 		else
 			System.err.println("Invalid arguments");
 	}
-
 
 }
