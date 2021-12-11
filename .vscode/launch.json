@@ -34,10 +34,10 @@
         },
         {
             "type": "java",
-            "name": "Launch DataClient",
+            "name": "Data Client",
             "request": "launch",
             "mainClass": "DataClient",
-            "projectName": "ProjetoPCD"
+            "args": ["127.0.0.1","8081"]
         },
         {
             "type": "java",

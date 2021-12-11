@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Scanner;
+import java.util.concurrent.CountDownLatch;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -129,14 +130,7 @@ public class StorageNode implements Serializable {
 		out.println("INSC " + ip + " " + porto);
 	}
 
-	// public void runClient() {
-	// try {
-	// connectToServer();
-	// registerInServer();
-	// } catch (IOException e) {
-	// e.printStackTrace();
-	// }
-	// }
+
 
 	public class DataInjectionErrorThread extends Thread {
 		public void run() {
@@ -153,11 +147,36 @@ public class StorageNode implements Serializable {
 		}
 	}
 
+	public class DetetorDeErros extends Thread {
+		public void run() {
+			while(true){
+				for (int i = 0; i < storedData.length; i++) {
+					if(!storedData[i].isParityOk())
+						//corrrigir erro
+						corrigirErro(i);
+				}
+			}
+		}
+	}
+
+	public synchronized void corrigirErro(int posicao) throws InterruptedException {
+		CountDownLatch latch=new CountDownLatch(2);
+		try {
+			List<Node> nodes = getNodes();
+			ByteBlockRequest request = new ByteBlockRequest(posicao, 1);
+			for (Node node : nodes) {
+				new DownloadThread(node.ip, node.porto,request);
+			}
+			latch.await();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
 	public class DownloadThread extends Thread {
 		private ObjectInputStream in;
 		private ObjectOutputStream out;
-		// private BufferedReader in;
-		// private PrintWriter out;
 		private InetAddress ip;
 		private String porto;
 		private ByteBlockRequest request;
@@ -169,7 +188,6 @@ public class StorageNode implements Serializable {
 				connectToNode();
 				while (!requests.isEmpty()) {
 					request = requests.remove(0);
-					//System.out.println("retirei request");
 					out.writeObject(request);
 					CloudByte[] bytes= (CloudByte[]) in.readObject();
 					count++;
@@ -203,8 +221,6 @@ public class StorageNode implements Serializable {
 
 	public class ResponderNodes extends Thread {
 		private Socket clientSocket;
-		// private BufferedReader in;
-		// private PrintWriter out;
 		private ObjectInputStream in;
 		private ObjectOutputStream out;
 		ByteBlockRequest request;
@@ -216,26 +232,19 @@ public class StorageNode implements Serializable {
 		public void run() {
 			try {
 				connectToNode();
-				// out.println("ola");
-				// System.out.println("mandei");
+
 				while(true){
 					request = (ByteBlockRequest) in.readObject();
 					// if(request.getLength()==-1)
 					// 	break;
 					CloudByte[] lista = new CloudByte[request.getLength()];
 					for (int i = request.getStartIndex(); i < request.getLength()+request.getStartIndex(); i++) {
+						if(!storedData[i].isParityOk())
+							corrigirErro(i);
 						lista[i - request.getStartIndex()] = storedData[i];
 					}
 					out.writeObject(lista);
 				}
-				// do {
-				// 	request = (ByteBlockRequest) in.readObject();
-				// 	CloudByte[] lista = new CloudByte[request.getLength()];
-				// 	for (int i = request.getStartIndex(); i < request.getLength()+request.getStartIndex(); i++) {
-				// 		lista[i - request.getStartIndex()] = storedData[i];
-				// 	}
-				// 	out.writeObject(lista);
-				// } while (request.getLength() != -1);
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				System.out.println("Terminei de descarregar para o node IP:"+clientSocket.getInetAddress()+" Porto: "+clientSocket.getPort());
@@ -243,11 +252,6 @@ public class StorageNode implements Serializable {
 		}
 
 		void connectToNode() throws IOException {
-			// this.in = new BufferedReader(new InputStreamReader(
-			// clientSocket.getInputStream()));
-			// this.out = new PrintWriter(new BufferedWriter(
-			// new OutputStreamWriter(clientSocket.getOutputStream())),
-			// true);
 			out = new ObjectOutputStream(clientSocket.getOutputStream());
 			in = new ObjectInputStream(clientSocket.getInputStream());
 		}
@@ -288,4 +292,6 @@ public class StorageNode implements Serializable {
 		else
 			System.err.println("Invalid arguments");
 	}
+
+
 }
