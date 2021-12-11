@@ -151,9 +151,9 @@ public class StorageNode implements Serializable {
 		public void run() {
 			while (true) {
 				for (int i = 0; i < storedData.length; i++) {
-					if (!storedData[i].isParityOk()){
+					if (!storedData[i].isParityOk()) {
 						try {
-							System.out.println("Detetei erro em "+storedData[i]);
+							System.out.println("Detetei erro em " + storedData[i]);
 							corrigirErro(i);
 						} catch (InterruptedException e) {
 							// TODO Auto-generated catch block
@@ -166,16 +166,17 @@ public class StorageNode implements Serializable {
 	}
 
 	public synchronized void corrigirErro(int posicao) throws InterruptedException {
+		CountDownLatch latch = new CountDownLatch(2);
 		try {
 			List<Node> nodes = getNodes();
-			if(nodes.size()<)
-			CountDownLatch latch = new CountDownLatch(2);
+			if (nodes.size() < 2)
+				latch = new CountDownLatch(1);
 			ByteBlockRequest request = new ByteBlockRequest(posicao, 1);
 			for (Node node : nodes) {
-				new DownloadThread(node.ip, node.porto, request);
+				new DownloadThread(node.ip, node.porto, request,latch).start();
 			}
 			latch.await();
-			System.out.println("Duas threads terminaram");
+			System.out.println("");
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -190,31 +191,44 @@ public class StorageNode implements Serializable {
 		private ByteBlockRequest request;
 		private Socket socketNode;
 		private int count;
+		private CountDownLatch latch;
 
-		public DownloadThread(InetAddress ip, String porto, ByteBlockRequest request) {
+		public DownloadThread(InetAddress ip, String porto, ByteBlockRequest request, CountDownLatch latch) {
 			this.ip = ip;
 			this.porto = porto;
 			this.request = request;
+			this.latch = latch;
 		}
 
 		public DownloadThread(InetAddress ip, String porto) {
 			this.ip = ip;
 			this.porto = porto;
+			this.latch=new CountDownLatch(0);
 		}
 
 		public void run() {
 			try {
 				connectToNode();
-				while (!requests.isEmpty()) {
-					request = requests.remove(0);
+				do {
+					if(!requests.isEmpty())
+						request = requests.remove(0);
 					out.writeObject(request);
 					CloudByte[] bytes = (CloudByte[]) in.readObject();
 					count++;
 					MergetoFile(request, bytes);
-				}
+				} while (!requests.isEmpty());
+				/* while (!requests.isEmpty()) {
+					if(request==null)
+						request = requests.remove(0);
+					out.writeObject(request);
+					CloudByte[] bytes = (CloudByte[]) in.readObject();
+					count++;
+					MergetoFile(request, bytes);
+				} */
 				System.out.println("Retirei " + count + " blocos do node IP: " + socketNode.getInetAddress()
 						+ " Porto: " + socketNode.getPort());
 				socketNode.close();
+				latch.countDown();
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
