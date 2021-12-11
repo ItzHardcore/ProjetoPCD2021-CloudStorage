@@ -41,6 +41,13 @@
         },
         {
             "type": "java",
+            "name": "Dataclient args",
+            "request": "launch",
+            "mainClass": "DataClient",
+            "args": ["127.0.0.1","8081"]
+        },
+        {
+            "type": "java",
             "name": "Launch StorageNode",
             "request": "launch",
             "mainClass": "StorageNode",
