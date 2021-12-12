@@ -259,13 +259,9 @@ public class StorageNode implements Serializable {
 				} while (!requests.isEmpty());
 				System.out.println("Retirei " + count + " blocos do node IP: " + socketNode.getInetAddress()
 						+ " Porto: " + socketNode.getPort());
-				request.setLength(-1);
-				out.writeObject(request);
 				socketNode.close();
 				latch.countDown();
 			} catch (Exception e) {
-				System.err.println("Falha a descarregar de " + socketNode.getInetAddress()
-						+ " Porto: " + socketNode.getPort());
 			}
 		}
 
@@ -299,10 +295,10 @@ public class StorageNode implements Serializable {
 		public void run() {
 			try {
 				connectToNode();
-				while (clientSocket.isConnected()) {
+				while (true) {
 					request = (ByteBlockRequest) in.readObject();
-					if(request.getLength() == -1){
-						//break;
+					if (request.getLength() == -1) {
+						break;
 					}
 					CloudByte[] lista = new CloudByte[request.getLength()];
 					for (int i = request.getStartIndex(); i < request.getLength() + request.getStartIndex(); i++) {
@@ -312,11 +308,7 @@ public class StorageNode implements Serializable {
 					}
 					out.writeObject(lista);
 				}
-				System.out.println("desconect");
 			} catch (Exception e) {
-				e.printStackTrace();
-				System.err.println("Erro ao enviar para " + clientSocket.getInetAddress()
-						+ " Porto: " + clientSocket.getPort());
 			}
 			System.out.println("Terminei de descarregar para o node IP:" + clientSocket.getInetAddress()
 					+ " Porto: " + clientSocket.getPort());
