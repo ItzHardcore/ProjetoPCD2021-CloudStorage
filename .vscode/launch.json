@@ -4,47 +4,82 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+        
+        {
+            "type": "java",
+            "name": "Diretorio 8080",
+            "request": "launch",
+            "mainClass": "Diretorio",
+            "args": [
+                "8080"
+            ]
+        },
         {
             "type": "java",
             "name": "Port 8081",
             "request": "launch",
             "mainClass": "StorageNode",
-            "args": ["127.0.0.1","8080","8081","data.bin"]
+            "args": [
+                "127.0.0.1",
+                "8080",
+                "8081",
+                "data.bin"
+            ]
         },
         {
             "type": "java",
             "name": "Port 8082",
             "request": "launch",
             "mainClass": "StorageNode",
-            "args": ["127.0.0.1","8080","8082","data.bin"]
+            "args": [
+                "127.0.0.1",
+                "8080",
+                "8082",
+                "data.bin"
+            ]
         },
         {
             "type": "java",
             "name": "Port 8083",
             "request": "launch",
             "mainClass": "StorageNode",
-            "args": ["127.0.0.1","8080","8083","data.bin"]
+            "args": [
+                "127.0.0.1",
+                "8080",
+                "8083",
+                "data.bin"
+            ]
         },
         {
             "type": "java",
             "name": "Port 8084",
             "request": "launch",
             "mainClass": "StorageNode",
-            "args": ["127.0.0.1","8080","8084"]
+            "args": [
+                "127.0.0.1",
+                "8080",
+                "8084"
+            ]
         },
         {
             "type": "java",
             "name": "Data Client",
             "request": "launch",
             "mainClass": "DataClient",
-            "args": ["127.0.0.1","8081"]
+            "args": [
+                "127.0.0.1",
+                "8081"
+            ]
         },
         {
             "type": "java",
             "name": "Dataclient args",
             "request": "launch",
             "mainClass": "DataClient",
-            "args": ["127.0.0.1","8081"]
+            "args": [
+                "127.0.0.1",
+                "8081"
+            ]
         },
         {
             "type": "java",
