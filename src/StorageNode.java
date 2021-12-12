@@ -1,5 +1,4 @@
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -31,6 +30,7 @@ public class StorageNode implements Serializable {
 	private String portoDiretorio;
 	private InetAddress ip;
 	private List<ByteBlockRequest> requests = Collections.synchronizedList(new ArrayList<>());
+	private final int NUMTHREADSCORRECAO = 2;
 
 	public StorageNode(String ip, String portoDiretorio, String porto, String ficheiro)
 			throws UnknownHostException, IOException {
@@ -64,7 +64,9 @@ public class StorageNode implements Serializable {
 			return;
 		}
 		new DataInjectionErrorThread().start();
-		new DetetorDeErros().start();
+		for (int i = 0; i < NUMTHREADSCORRECAO; i++) {
+			new DetetorDeErros().start();
+		}
 	}
 
 	public StorageNode(String ip, String portoDiretorio, String porto) throws UnknownHostException, IOException {
@@ -100,7 +102,6 @@ public class StorageNode implements Serializable {
 			System.err.println("Erro ao importar o Ficheiro");
 			return;
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
 			System.err.println("Erro nas thread de descarregar");
 		}
 		try {
@@ -110,7 +111,9 @@ public class StorageNode implements Serializable {
 			return;
 		}
 		new DataInjectionErrorThread().start();
-		new DetetorDeErros().start();
+		for (int i = 0; i < NUMTHREADSCORRECAO; i++) {
+			new DetetorDeErros().start();
+		}
 	}
 
 	public class Node {
@@ -180,21 +183,24 @@ public class StorageNode implements Serializable {
 	}
 
 	public class DetetorDeErros extends Thread {
+		int indexInicial;
+		int indexFinal;
+
 		public void run() {
 			while (true) {
 				try {
 					for (int i = 0; i < storedData.length; i++) {
-						if (!storedData[i].isParityOk()) {
+						if (!storedData[i].isParityOk() && storedData[i].lock.tryLock()) {
 							System.out.println("Detetei erro na posicao " + i + " no " + storedData[i]);
 							corrigirErro(i);
 						}
 					}
 				} catch (Exception e) {
+					e.printStackTrace();
 					System.err.println("A aguardar 10 sec por um novo node");
 					try {
 						sleep(10000);
 					} catch (InterruptedException e1) {
-						// TODO Auto-generated catch block
 						e1.printStackTrace();
 					}
 				}
@@ -232,12 +238,6 @@ public class StorageNode implements Serializable {
 			this.porto = porto;
 			this.request = request;
 			this.latch = latch;
-		}
-
-		public DownloadThread(InetAddress ip, String porto) {
-			this.ip = ip;
-			this.porto = porto;
-			this.latch = new CountDownLatch(0);
 		}
 
 		public DownloadThread(InetAddress ip, String porto, CountDownLatch latch) {
@@ -282,7 +282,7 @@ public class StorageNode implements Serializable {
 		}
 	}
 
-	public class ResponderNodes extends Thread { // SERVO
+	public class ResponderNodes extends Thread {
 		private Socket clientSocket;
 		private ObjectInputStream in;
 		private ObjectOutputStream out;
@@ -302,7 +302,7 @@ public class StorageNode implements Serializable {
 					}
 					CloudByte[] lista = new CloudByte[request.getLength()];
 					for (int i = request.getStartIndex(); i < request.getLength() + request.getStartIndex(); i++) {
-						if (!storedData[i].isParityOk())
+						if (!storedData[i].isParityOk() && storedData[i].lock.tryLock())
 							corrigirErro(i);
 						lista[i - request.getStartIndex()] = storedData[i];
 					}
@@ -320,8 +320,7 @@ public class StorageNode implements Serializable {
 		}
 	}
 
-	public class Servico extends Thread { // cria o numero de threash consoante o numero de nodes, para responder aos
-											// pedidos
+	public class Servico extends Thread {
 		private ServerSocket serverSocket;
 
 		public Servico(ServerSocket serverSocket) {

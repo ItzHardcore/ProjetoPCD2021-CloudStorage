@@ -1,47 +1,61 @@
 
-
 import java.io.Serializable;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import javax.management.RuntimeErrorException;
-/** @brief Class to represent 7-bit bytes. Extra bit is for parity, and is set in constructor.
+
+/**
+ * @brief Class to represent 7-bit bytes. Extra bit is for parity, and is set in
+ *        constructor.
  * 
  * @author luismota
  *
  */
 @SuppressWarnings({ "unused", "serial" })
 public class CloudByte implements Serializable {
+	/* Adicionado um lock para conseguir corrigir os erros de forma concorrente,
+	desta forma garantimos que so se pode verificar um cloudByte de cada vez
+	evitando conflitos quando verificamos o isParityOk */
+	Lock lock = new ReentrantLock();
 	byte value;
+
 	public CloudByte(byte value) {
-		if(value>127 || value <0)
+		if (value > 127 || value < 0)
 			throw new IllegalArgumentException("Invalid value for CloudByte");
-		if(countOnes(value)%2==0)
+		if (countOnes(value) % 2 == 0)
 			this.value = value;
 		else
-			this.value=(byte)-value;
+			this.value = (byte) -value;
 	}
-	public byte getValue(){ 
+
+	public byte getValue() {
 		return (byte) Math.abs(value);
 	}
+
 	/**
 	 * Test if parity bit has expected value
+	 * 
 	 * @return parity checks
 	 */
-	public boolean isParityOk(){
-		if(value<0)
-			return countOnes(getValue())%2==1;
+	public boolean isParityOk() {
+		if (value < 0)
+			return countOnes(getValue()) % 2 == 1;
 		else
-			return countOnes(getValue())%2==0;
-	}	
+			return countOnes(getValue()) % 2 == 0;
+	}
+
 	/**
 	 * Only for testing: force parity to be incorrect
 	 */
 	public void makeByteCorrupt() {
-		//general inversion did not work for 0...
-		if(value==0)
-			value=1;// 1 is invalid, should be -1
+		// general inversion did not work for 0...
+		if (value == 0)
+			value = 1;// 1 is invalid, should be -1
 		else
-			value=(byte)-value;
+			value = (byte) -value;
 	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -49,6 +63,7 @@ public class CloudByte implements Serializable {
 		result = prime * result + value;
 		return result;
 	}
+
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
@@ -62,15 +77,17 @@ public class CloudByte implements Serializable {
 			return false;
 		return true;
 	}
+
 	@Override
 	public String toString() {
-		return "CloudByte [value=" + getValue() + "]"+(!isParityOk()?"->ERROR":"");
+		return "CloudByte [value=" + getValue() + "]" + (!isParityOk() ? "->ERROR" : "");
 	}
-	private static byte countOnes(byte value){
-		byte count=0;
-		while(value>0){
-			count+=value%2;
-			value/=2;
+
+	private static byte countOnes(byte value) {
+		byte count = 0;
+		while (value > 0) {
+			count += value % 2;
+			value /= 2;
 		}
 		return count;
 	}

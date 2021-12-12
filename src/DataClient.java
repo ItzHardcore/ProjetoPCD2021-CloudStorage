@@ -8,7 +8,6 @@ import java.net.InetAddress;
 import java.net.Socket;
 import javax.swing.*;
 
-
 public class DataClient {
 	static JFrame f = new JFrame("Cliente");
 	private InetAddress IP;
@@ -17,7 +16,6 @@ public class DataClient {
 	public DataClient(String ip, String porto) throws IOException {
 		IP = InetAddress.getByName(ip);
 		this.porto = porto;
-
 		createWindow();
 	}
 
@@ -29,7 +27,7 @@ public class DataClient {
 		f.setSize(700, 200);
 		f.setLayout(new BorderLayout());
 		f.setName("Client");
-
+		f.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 		JPanel top = new JPanel();
 		JLabel labelPosition = new JLabel("Posição a consultar");
 		JTextField textFieldPosition = new JTextField();
@@ -38,11 +36,9 @@ public class DataClient {
 		JTextField textFieldComprimento = new JTextField();
 		JTextPane textArea = new JTextPane();
 		textFieldComprimento.setColumns(12);
-		// textArea.setColumns(30);
-
 		textArea.setText("As respostas aparecerão aqui...");
-		JButton b = new JButton("Consultar");// creating instance of JButton
-		b.setBounds(130, 100, 100, 40);// x axis, y axis, width, height
+		JButton b = new JButton("Consultar");
+		b.setBounds(130, 100, 100, 40);
 
 		top.add(labelPosition);
 		top.add(textFieldPosition);
@@ -52,12 +48,12 @@ public class DataClient {
 
 		f.add(top, BorderLayout.NORTH);
 		f.add(textArea, BorderLayout.CENTER);
-		// JTextPane areaScrollPane= new JTextPane();
+
 		JScrollPane areaScrollPane = new JScrollPane(textArea);
 		areaScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
 		areaScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 		f.add(areaScrollPane, BorderLayout.CENTER);
-		f.setVisible(true);// making the frame visible
+		f.setVisible(true);
 		b.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
@@ -95,7 +91,7 @@ public class DataClient {
 				String str = "";
 				for (int i = 0; i < request.getLength(); i++) {
 					str = str + storedData[i].getValue() + " ";
-					System.out.println(Math.round((float)i/(float)comprimento*100)+" %");
+					System.out.println(Math.round((float) i / (float) comprimento * 100) + " %");
 				}
 				System.out.println("Terminei");
 				textArea.setText(str);
@@ -103,7 +99,7 @@ public class DataClient {
 		});
 	}
 
-	public class DownloadService { // cliente
+	public class DownloadService {
 		private ObjectInputStream in;
 		private ObjectOutputStream out;
 		private InetAddress ip;
@@ -128,7 +124,6 @@ public class DataClient {
 				socketNode.close();
 
 			} catch (Exception e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 			return bytes;
