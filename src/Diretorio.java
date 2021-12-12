@@ -6,13 +6,27 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.UnknownHostException;
+import java.sql.SQLSyntaxErrorException;
 import java.util.ArrayList;
 
 public class Diretorio {
     private ServerSocket serverSocket;
-    private ArrayList<String> array = new ArrayList<>();
+    private ArrayList<Node> array = new ArrayList<Node>();
+
+    public class Node {
+		InetAddress ip;
+		int porto;
+
+		public Node(InetAddress ip, int porto) {
+			super();
+			this.ip = ip;
+			this.porto = porto;
+		}
+	}
 
     public class TrataCliente extends Thread {
         private Socket socketCliente;
@@ -33,25 +47,25 @@ public class Diretorio {
                     System.err.println("Erro ao receber inscricao do cliente: mensagem inv" + msgInicial);
                     return;
                 }
-                String endereco = componentesMensagem[1];
+                InetAddress endereco = InetAddress.getByName(componentesMensagem[1].substring(componentesMensagem[1].indexOf("/") + 1));
                 int portoCliente = Integer.parseInt(componentesMensagem[2]);
 
-                //if(array.size()==0){
-                //    registaCliente(endereco, portoCliente);
-                //    System.err.println("Cliente inscrito:" + this.socketCliente.getInetAddress().getHostAddress() + " "
-                //            + portoCliente);
-                //}else{
-                //    for(int i=0;i<array.size();i++){
-                //        if(array.get(i).equals(endereco+" "+portoCliente)){
-                //            System.err.println("Node ja existe, impossivel criar");
-                //            break;
-                //        }
-                //    }
+                if(array.size()==0){
                     registaCliente(endereco, portoCliente);
                     System.err.println("Cliente inscrito:" + this.socketCliente.getInetAddress().getHostAddress() + " "
                             + portoCliente);
-                    
-                //}
+                }else{
+                    for(int i=0;i<array.size();i++){
+                        
+                        if(array.get(i).ip.equals(endereco) && array.get(i).porto == portoCliente){
+                            System.err.println("Node ja existe, impossivel criar");
+                            return;
+                        }
+                    }
+                    registaCliente(endereco, portoCliente);
+                        System.err.println("Cliente inscrito:" + this.socketCliente.getInetAddress().getHostAddress() + " "
+                            + portoCliente);
+                }
                 
                 while (true) {
                     String msg = in.readLine();
@@ -76,16 +90,16 @@ public class Diretorio {
 
         private void trataConsultaClientes(PrintWriter out) {
             for (int i = 0; i != array.size(); i++)
-                out.println("node " + (String) array.get(i));
+                out.println("node " + array.get(i).ip + " "+ array.get(i).porto);
             out.println("end");
         }
 
-        private void registaCliente(String endereco, int portoCliente) {
-            array.add(String.valueOf(endereco) + " " + portoCliente);
+        private void registaCliente(InetAddress endereco, int portoCliente) {
+                array.add(new Node(endereco, portoCliente));
         }
 
-        private void logoutCliente(String endereco, int portoCliente) {
-            array.remove(String.valueOf(endereco) + " " + portoCliente);
+        private void logoutCliente(InetAddress endereco, int portoCliente) {
+                array.remove(new Node(endereco, portoCliente));
         }
     }
 

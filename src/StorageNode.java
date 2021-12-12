@@ -57,7 +57,12 @@ public class StorageNode implements Serializable {
 			System.err.println("Erro ao importar o Ficheiro");
 			return;
 		}
-		new Servico(new ServerSocket(Integer.parseInt(porto))).start();
+		try {
+			new Servico(new ServerSocket(Integer.parseInt(porto))).start();
+		} catch (Exception e) {
+			System.err.println("Valores de IP e porto já utilizados, tente novamente");
+			return;
+		}
 		new DataInjectionErrorThread().start();
 		new DetetorDeErros().start();
 	}
@@ -98,7 +103,12 @@ public class StorageNode implements Serializable {
 			// TODO Auto-generated catch block
 			System.err.println("Erro nas thread de descarregar");
 		}
-		new Servico(new ServerSocket(Integer.parseInt(porto))).start();
+		try {
+			new Servico(new ServerSocket(Integer.parseInt(porto))).start();
+		} catch (Exception e) {
+			System.err.println("Valores de IP e porto já utilizados, tente novamente");
+			return;
+		}
 		new DataInjectionErrorThread().start();
 		new DetetorDeErros().start();
 	}
@@ -249,6 +259,8 @@ public class StorageNode implements Serializable {
 				} while (!requests.isEmpty());
 				System.out.println("Retirei " + count + " blocos do node IP: " + socketNode.getInetAddress()
 						+ " Porto: " + socketNode.getPort());
+				request.setLength(-1);
+				out.writeObject(request);
 				socketNode.close();
 				latch.countDown();
 			} catch (Exception e) {
@@ -287,8 +299,11 @@ public class StorageNode implements Serializable {
 		public void run() {
 			try {
 				connectToNode();
-				while (true) {
+				while (clientSocket.isConnected()) {
 					request = (ByteBlockRequest) in.readObject();
+					if(request.getLength() == -1){
+						//break;
+					}
 					CloudByte[] lista = new CloudByte[request.getLength()];
 					for (int i = request.getStartIndex(); i < request.getLength() + request.getStartIndex(); i++) {
 						if (!storedData[i].isParityOk())
@@ -297,7 +312,9 @@ public class StorageNode implements Serializable {
 					}
 					out.writeObject(lista);
 				}
+				System.out.println("desconect");
 			} catch (Exception e) {
+				e.printStackTrace();
 				System.err.println("Erro ao enviar para " + clientSocket.getInetAddress()
 						+ " Porto: " + clientSocket.getPort());
 			}
