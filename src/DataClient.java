@@ -1,6 +1,4 @@
 import java.awt.BorderLayout;
-import java.awt.Dimension;
-import java.awt.Dialog.ModalExclusionType;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
@@ -8,15 +6,8 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
-
-import java.net.UnknownHostException;
-
-import java.nio.channels.spi.AbstractInterruptibleChannel;
-import java.awt.FlowLayout;
-
 import javax.swing.*;
 
-import javax.xml.crypto.Data;
 
 public class DataClient {
 	static JFrame f = new JFrame("Cliente");
@@ -45,9 +36,9 @@ public class DataClient {
 		textFieldPosition.setColumns(12);
 		JLabel labelComprimento = new JLabel("Comprimento");
 		JTextField textFieldComprimento = new JTextField();
-		JTextArea textArea = new JTextArea();
+		JTextPane textArea = new JTextPane();
 		textFieldComprimento.setColumns(12);
-		textArea.setColumns(30);
+		// textArea.setColumns(30);
 
 		textArea.setText("As respostas aparecerão aqui...");
 		JButton b = new JButton("Consultar");// creating instance of JButton
@@ -61,18 +52,25 @@ public class DataClient {
 
 		f.add(top, BorderLayout.NORTH);
 		f.add(textArea, BorderLayout.CENTER);
+		// JTextPane areaScrollPane= new JTextPane();
 		JScrollPane areaScrollPane = new JScrollPane(textArea);
 		areaScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+		areaScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 		f.add(areaScrollPane, BorderLayout.CENTER);
 		f.setVisible(true);// making the frame visible
-
 		b.addActionListener(new ActionListener() {
-
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				int posicao = 0, comprimento = 0;
 				String text1 = textFieldPosition.getText();
 				String text2 = textFieldComprimento.getText();
+				try {
+					posicao = Integer.parseInt(text1);
+					comprimento = Integer.parseInt(text2);
+				} catch (NumberFormatException err) {
+					textArea.setText("Inserir valor numerico");
+					return;
+				}
 				if (text1.isBlank() || text2.isBlank()) {
 					textArea.setText("Inserir valores");
 					return;
@@ -89,13 +87,6 @@ public class DataClient {
 					textArea.setText("Comprimento fora dos limites");
 					return;
 				}
-				try {
-					posicao = Integer.parseInt(text1);
-					comprimento = Integer.parseInt(text2);
-				} catch (NumberFormatException err) {
-					textArea.setText("Inserir valor numerico");
-					return;
-				}
 
 				CloudByte[] storedData = new CloudByte[comprimento];
 				ByteBlockRequest request = new ByteBlockRequest(posicao, comprimento);
@@ -103,12 +94,11 @@ public class DataClient {
 				storedData = downloadservice.download();
 				String str = "";
 				for (int i = 0; i < request.getLength(); i++) {
-					System.out.println("escrevendo...");
 					str = str + storedData[i].getValue() + " ";
+					System.out.println(Math.round((float)i/(float)comprimento*100)+" %");
 				}
-
+				System.out.println("Terminei");
 				textArea.setText(str);
-
 			}
 		});
 	}
@@ -133,7 +123,6 @@ public class DataClient {
 
 			try {
 				connectToNode();
-				System.out.println("entrei");
 				out.writeObject(request);
 				bytes = (CloudByte[]) in.readObject();
 				socketNode.close();
@@ -150,9 +139,6 @@ public class DataClient {
 			socketNode = new Socket(this.ip, Integer.parseInt(this.porto));
 			this.in = new ObjectInputStream(socketNode.getInputStream());
 			this.out = new ObjectOutputStream(socketNode.getOutputStream());
-
-			System.err.println("Conectado ao node com o IP: " + socketNode.getInetAddress() + " no porto: "
-					+ socketNode.getPort());
 		}
 	}
 
